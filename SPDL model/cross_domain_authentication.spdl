@@ -1,0 +1,141 @@
+/* 
+ * Cross domain Authentication and KeyNegotiation protocol
+ */
+
+ // The protocol description
+const SACas1,UIac1,UIac2,SACas2: Nonce;
+hashfunction MAC,h1,h2,h3,Hash;                                            
+usertype group;                                                                       
+usertype Point;         
+const G: Point;  
+usertype SKey;  
+usertype PKey; 
+const Xas1,Yas1,Xac1,Yac1,Xac2,Yac2:PKey;
+usertype SessionKey;
+usertype error;
+function add;                                                                             
+function mul;                                                                            
+function ecmul;                                                                         
+function xor;                                                    
+function concat;
+function asconenc;
+function ascondec;
+
+
+protocol AuthenticationKeyNegotiation(AC1,AC2,AS1)
+{
+	role AC1
+	{
+                const xac1,yac1: SKey;  
+                const UAas1: Nonce; 
+                const KSas1-ac1,KSac1-ac2:SessionKey;
+                fresh TSQN1,T,C,TSQN4: Nonce; 
+                var TSQN3: Nonce;
+                var b: group;
+                var B: Point;
+                fresh d: group;
+                fresh D: Point;
+
+                macro A= Hash(ecmul(yac1,Yac2));                             
+                macro P=xor(UAIac1,UIac2,SACas1,UAas1,TSQN1);     
+                macro g=concat(C,T);                                                  
+                macro h=asconenc(KSac1-ac2,TSQN1,A,P);
+                macro g=h;
+                macro l=add(Xac2,Yac2);
+                macro m=ecmul(d,l);
+                macro n=xor(h1(m),concat(UIac1,SACas1,UAas1,B));
+
+                send_1(AC1,AC2,TSQN1,UIac1,C,T);
+                recv_3(AS1,AC1,{TSQN3,UIac2,UAas1,SACas2,B}KSas1-ac1);
+                send_4(AC1,AC2,TSQN4,D,n);                                             
+
+                claim(AC1, Secret, xac1);  
+                claim(AC1, Secret, yac1);  
+                claim(AC1, Secret, KSas1-ac1);  
+                claim(AC1, Secret, KSac1-ac2);  
+		claim(AC1,Alive);
+		claim(AC1,Weakagree);
+		claim(AC1,Niagree);
+		claim(AC1,Nisynch);
+
+	}
+
+        role AC2
+        {
+                const xac2,yac2: SKey;  
+                const KSac1-ac2:SessionKey;
+                var UAas1,TSQN1,T,C,TSQN3,TSQN4,TSQN6,m3: Nonce; 
+                fresh e:error;      
+                fresh TSQN2,TSQN5: Nonce; 
+                var b,d: group;
+                var B,D: Point;
+                fresh r: group;
+                fresh R: Point;
+		var KSac2-as1:SessionKey;
+
+                macro A'= Hash(ecmul(Yac1,yac2));
+                macro A'=A;
+                macro j=concat(P,e); 
+                macro k=ascondec(KSac1-ac2,TSQN1,A,C,T);
+                macro j=k;
+                macro P=xor(UIac1,UIac2,SACas1,UAas1,TSQN1);   
+                macro m'=ecmul(D,add(xac2,yac2));
+                macro o=concat(UAac1,SACas1,UAas1,B);
+                macro q=xor(h1(m'),n);
+                macro o=q;
+                macro s=h2(concat(TSQN5,SACas2,UIac2,B,R));
+		macro  KSac2-as1 = h3(concat(TSQN5,SACas2,UIac2,ecmul(r,add(ecmul(s,B),Xas1,Yas1))));
+                macro m1=MAC(KSac2-as1,s);
+
+               recv_1(AC1,AC2,TSQN1,UIac1,C,T);
+               send_2(AC2,AS1,TSQN2,UIac2,UIac1,SACas2);
+               recv_4(AC1,AC2,TSQN4,D,n);   
+               send_5(AC2,AS1,TSQN5,R,m1);
+               recv_6(AS1,AC2,{TSQN6,m3}KSac2-as1);
+
+               claim(AC2, Secret, xac2);  
+               claim(AC2, Secret, yac2);  
+               claim(AC2, Secret, KSac1-ac2);  
+               claim(AC2, Secret, KSac2-as1);  
+	       claim(AC2,Alive);
+  	       claim(AC2,Weakagree);
+	       claim(AC2,Niagree);
+	       claim(AC2,Nisynch);
+
+	}
+
+       role AS1
+       {
+               const xas1,yas1: SKey;  
+               const UAas1: Nonce; 
+               const KSas1-ac1:SessionKey;
+               var TSQN2,TSQN5: Nonce; 
+               fresh TSQN3,TSQN6,m3: Nonce;
+               fresh b: group;
+               fresh B: Point;
+               var r: group;
+               var R: Point;
+	       var KSas1-ac2: SessionKey;
+	                    
+               macro s=h2(concat(TSQN5,SACas2,UIac2,B,R));
+               macro KSas1-ac2=h3(concat(TSQN5,SACas2,UIac2,ecmul(R,add(mul(s,b),xas1,yas1))));
+               macro m2=MAC(KSas1-ac2,s);                                
+               macro KSac2-as1=h3(concat(TSQN5,SACas2,UIac2,ecmul(r,add(ecmul(s,B),Xas1,Yas1))));
+               macro m1=MAC(KSac2-as1,s);
+
+               recv_2(AC2,AS1,TSQN2,UIac2,UIac1,SACas2); 
+               send_3(AS1,AC1,{TSQN3,UIac2,UAas1,SACas2,B}KSas1-ac1);
+               recv_5(AC2,AS1,TSQN5,R,m1);
+               send_6(AS1,AC2,{TSQN6,m3}KSac2-as1);
+
+               claim(AS1, Secret, xas1);  
+               claim(AS1, Secret, yas1); 
+               claim(AS1, Secret, KSas1-ac1); 
+               claim(AS1, Secret, UAas1);  
+               claim(AS1, Secret, KSas1-ac2);  
+	       claim(AS1,Alive);
+	       claim(AS1,Weakagree);
+	       claim(AS1,Niagree);
+	       claim(AS1,Nisynch);
+	}	
+}
